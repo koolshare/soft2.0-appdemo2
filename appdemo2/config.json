@@ -1,0 +1,15 @@
+{
+    "name":"appdemo2",
+    "displayName":"测试示例",
+    "version":"0.0.2",
+    "tags":"官方 下载",
+    "description": "这是一个示例插件2，纯展示",
+    "event_scripts":[
+        {"installed":99},
+        {"start":99},
+        {"stop":99},
+        {"wan":99},
+        {"nat":99}
+    ],
+    "supports": ["merlin-netgear", "~r7000", "ac86u"]
+}
