@@ -4,7 +4,6 @@
 . /koolshare/scripts/uci.sh
 
 on_installed() {
-    sleep 20
     app_init_cfg '{"appdemo2":[{"_id":"main","status":"not-init","enabled":"0", "token":" "}]}'
     app_log "installed"
 }
