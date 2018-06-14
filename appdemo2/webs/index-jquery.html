@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="googlebot" content="noindex, nofollow">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <script type="text/javascript" src="//code.jquery.com/jquery-2.2.2.js"></script>
+  <script type="text/javascript" src="https://unpkg.com/vue@2.2.1/dist/vue.min.js"></script>
+  <script type="text/javascript" src="https://unpkg.com/vue-form-generator@2.1.1"></script>
+  <link rel="stylesheet" type="text/css" href="https://unpkg.com/vue-form-generator@2.1.0/dist/vfg.css">
+  <style type="text/css">
+    html {
+	font-family: Tahoma;
+	font-size: 14px;
+}
+
+body {
+	font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+	font-size: 14px;
+	line-height: 1.42857143;
+	color: #333;
+}
+
+pre {
+	overflow: auto;
+}
+	pre .string { color: #885800; }
+	pre .number { color: blue; }
+	pre .boolean { color: magenta; }
+	pre .null { color: red; }
+	pre .key { color: green; }    
+
+h1 {
+	text-align: center;
+	font-size: 36px;
+	margin-top: 20px;
+	margin-bottom: 10px;
+	font-weight: 500;
+}
+
+fieldset {
+	border: 0;
+}
+
+.panel {
+	margin-bottom: 20px;
+	background-color: #fff;
+	border: 1px solid transparent;
+	border-radius: 4px;
+	-webkit-box-shadow: 0 1px 1px rgba(0, 0, 0, .05);
+	box-shadow: 0 1px 1px rgba(0, 0, 0, .05);
+	border-color: #ddd;
+}
+
+.panel-heading {
+	color: #333;
+	background-color: #f5f5f5;
+	border-color: #ddd;
+
+	padding: 10px 15px;
+	border-bottom: 1px solid transparent;
+	border-top-left-radius: 3px;
+	border-top-right-radius: 3px;        
+}
+
+.panel-body {
+	padding: 15px;
+}				
+
+.field-checklist .wrapper {
+	width: 100%;
+}
+  </style>
+
+  <title>DDNSTO</title>
+
+<script type="text/javascript">//<![CDATA[
+$.postJSON = function(url, data, callback) {
+    return jQuery.ajax({
+        'type': 'POST',
+        'url': url,
+        'contentType': 'application/json',
+        'data': JSON.stringify(data),
+        'dataType': 'json',
+        'success': callback
+    });
+};
+var vueInit = function(initData){
+var vm = new Vue({
+    el: "#app",
+
+    components: {
+        "vue-form-generator": VueFormGenerator.component
+    },
+
+    data() {
+        return {
+        model: initData,
+        schema: {
+            fields: [{
+                type: "switch",
+                label: "开关",
+                model: "enabled",
+                multi: true,
+                readonly: false,
+                featured: false,
+                disabled: false,
+                default: false,
+                textOn: "启用",
+                textOff: "禁用"
+            }, {
+                type: "input",
+                inputType: "text",
+                label: "DDNSTO Token",
+                model: "token",
+                readonly: false,
+                featured: true,
+                required: true,
+                disabled: false,
+                placeholder: "input your token here",
+                validator: VueFormGenerator.validators.string
+            }, {
+                type: "label",
+                label: "运行状态",
+                model: "status",
+            }, {
+                type: "submit",
+                label: "",
+                buttonText: "提交",
+                validateBeforeSubmit: true,
+                onSubmit:function(mod,sch) {
+                    postData = {};
+                    postData.token = mod.token;
+                    if (!mod.enabled) {
+                        postData.enabled = 0;
+                    } else {
+                        postData.enabled = 1;
+                    }
+                    $.postJSON('/cgi-bin/luci/ddnsto', postData, function(data) {
+                        if (data.status == "start") {
+                            mod.status = "运行中";
+                        } else if (data.status == "stop") {
+                            mod.status = "停止运行";
+                        }
+                        if (data.token) {
+                            mod.token = data.token;
+                        }
+                        if (!data.enabled) {
+                            mod.enabled = false;
+                        } else {
+                            mod.enabled = true;
+                        }
+                    });
+                }
+            }]
+        },
+
+        formOptions: {
+            validateAfterLoad: true,
+            validateAfterChanged: true
+        }
+        };
+    },
+
+    methods: {
+        prettyJSON: function(json) {
+            if (json) {
+                json = JSON.stringify(json, undefined, 4);
+                json = json.replace(/&/g, '&').replace(/</g, '<').replace(/>/g, '>');
+                return json.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, function(match) {
+                    var cls = 'number';
+                    if (/^"/.test(match)) {
+                        if (/:$/.test(match)) {
+                            cls = 'key';
+                        } else {
+                            cls = 'string';
+                        }
+                    } else if (/true|false/.test(match)) {
+                        cls = 'boolean';
+                    } else if (/null/.test(match)) {
+                        cls = 'null';
+                    }
+                    return '<span class="' + cls + '">' + match + '</span>';
+                });
+            }
+        }
+    },
+    
+});
+}
+
+
+window.onload=function(){
+    $.getJSON("/cgi-bin/luci/ddnsto", function(data) {
+        //TODO better here
+        if (data.enabled && data.enabled == 1) {
+            data.enabled = true;
+        } else {
+            data.enabled = false;
+        }
+        if (!data.token) {
+            data.token = "";
+        }
+        if (data.status == "not-init") {
+            data.status = "未初始化";
+        } else if (data.status == "start") {
+            data.status = "运行中";
+        } else if (data.status = "stop") {
+            data.status = "停止运行";
+        }
+        vueInit(data);
+    });
+}
+//]]> 
+
+</script>
+
+</head>
+
+<body>
+  <h1 class="text-center">DDNSTO 插件</h1>
+  <div class="container" id="app">
+    <div class="panel panel-default">
+      <div class="panel-heading">表单</div>
+      <div class="panel-body">
+        <vue-form-generator :schema="schema" :model="model" :options="formOptions"></vue-form-generator>
+      </div>
+    </div>
+
+  </div>
+</body>
+
+</html>
+

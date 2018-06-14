@@ -1,5 +1,144 @@
+<!DOCTYPE html>
 <html>
-    <body>
-        <h1>appdemo2</h1>
-    </body>
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="googlebot" content="noindex, nofollow">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+  <script type="text/javascript" src="https://unpkg.com/vue@2.2.1/dist/vue.min.js"></script>
+  <script type="text/javascript" src="https://unpkg.com/vue-form-generator@2.1.1"></script>
+  <link rel="stylesheet" type="text/css" href="/apps/appdemo2/main.css">
+  <link rel="stylesheet" type="text/css" href="https://unpkg.com/vue-form-generator@2.1.0/dist/vfg.css">
+  <title>Appdemo2</title>
+</head>
+
+<body>
+  <h1 class="text-center">Appdemo2 插件</h1>
+  <div class="container" id="app">
+    <div class="panel panel-default">
+      <div class="panel-heading">表单</div>
+      <div class="panel-body">
+        <vue-form-generator :schema="schema" :model="model" :options="formOptions"></vue-form-generator>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function getParameterByName(name, url) {
+        if (!url) url = window.location.href;
+        name = name.replace(/[\[\]]/g, "\\$&");
+        var regex = new RegExp("[?&]" + name + "(=([^&#]*)|&|#|$)"),
+            results = regex.exec(url);
+        if (!results) return null;
+        if (!results[2]) return '';
+        return decodeURIComponent(results[2].replace(/\+/g, " "));
+    }
+    function setup_kstoken() {
+        var kstoken = getParameterByName("kstoken");
+        if (kstoken) {
+            axios.defaults.headers.common['Ks-Authorization'] = kstoken;
+        }
+    }
+    setup_kstoken();
+
+    var vm = new Vue({
+      el: "#app",
+      components: {
+        'vue-form-generator': VueFormGenerator.component
+      },
+      data: function () {
+        var self = this
+        return {
+          model: {},
+          schema: {
+            fields: [{
+              type: "switch",
+              label: "开关",
+              model: "enabled",
+              multi: true,
+              readonly: false,
+              featured: false,
+              disabled: false,
+              default: false,
+              textOn: "启用",
+              textOff: "禁用"
+            }, {
+              type: "input",
+              inputType: "text",
+              label: "appdemo2 Token",
+              model: "token",
+              readonly: false,
+              featured: true,
+              required: true,
+              disabled: false,
+              placeholder: "input your token here",
+              validator: VueFormGenerator.validators.string
+            }, {
+              type: "label",
+              label: "运行状态",
+              model: "status",
+            }, {
+              type: "submit",
+              label: "",
+              buttonText: "提交",
+              validateBeforeSubmit: true,
+              onSubmit: function(mod, sch) {
+                  var postData = {"appdemo2":[{
+                  _id: "main",
+                  token: mod.token,
+                  enabled: mod.enabled ? "1" : "0"
+                  }]};
+                axios.post('/cgi-bin/luci/appdemo2', postData).then(function(result) {
+                  self.handleData(result.data.appdemo2[0], true);
+                });
+              }
+              }]
+          },
+          formOptions: {
+            validateAfterLoad: false,
+            validateAfterChanged: true
+          }
+        }
+      },
+      mounted: function() {
+        var self = this
+
+        var tm = function() {
+            axios.get("/cgi-bin/luci/appdemo2/status").then(function(result) {
+                self.model.status = result.data;
+                //setTimeout(tm, 3000);
+            });
+        };
+
+        axios.get("/cgi-bin/luci/appdemo2").then(function(result) {
+          self.handleData(result.data.appdemo2[0]);
+
+            setTimeout(tm, 3000);
+
+        });
+      },
+      methods: {
+        handleData: function (data, is_post) {
+          data.enabled = (data.enabled === "1");
+          data.token = data.token || '';
+          data.pusher_token = '';
+          data.status = {
+            'not-init': '未初始化',
+            'start': '运行中',
+            'stop': '停止运行'
+          }[data.status];
+          if (is_post) {
+            this.model.enabled = data.enabled;
+            this.model.token = data.token;
+            this.model.status = data.status;
+          } else {
+              console.log("data=", data);
+            this.model = data;
+          }
+        }
+      }
+    });
+  </script>
+</body>
 </html>
