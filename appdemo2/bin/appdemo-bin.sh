@@ -3,6 +3,6 @@
 while true
 do
     echo "aaa"
-    sleep 3
+    sleep 2
 done
 
