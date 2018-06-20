@@ -1,7 +1,7 @@
 {
     "name":"appdemo2",
     "displayName":"测试示例",
-    "version":"0.0.10",
+    "version":"0.0.11",
     "tags":"官方 下载",
     "description": "这是一个示例插件2，纯展示",
     "event_scripts":[
